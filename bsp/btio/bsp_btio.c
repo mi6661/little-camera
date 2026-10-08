@@ -29,14 +29,13 @@ void BTIO_Init(){
 
 
 int _write(int file, char *ptr, int len) {
-
     for (int i = 0; i < len; i++) {
         // 把你的 UART 发送函数放这里
         //uart_send_byte(ptr[i]);
-        USART_SendData(USART1,ptr[i]);
-        while(USART_GetFlagStatus(USART1,USART_FLAG_TXE) == RESET);
-        //while(!(USART1->SR & USART_SR_TXE));
-        //USART1->DR = ptr[i];
+        //USART_SendData(USART1,ptr[i]);
+        //while(USART_GetFlagStatus(USART1,USART_FLAG_TXE) == RESET);
+        while(!(USART1->SR & USART_SR_TXE));
+        USART1->DR = ptr[i];
     }
     return len;
 }
