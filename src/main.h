@@ -5,6 +5,8 @@
 #include "system_stm32f10x.h"
 #include "oled/bsp_oled.h"
 #include "btio/bsp_btio.h"
+#include "blight/bsp_blight.h"
+#include "mmc/bsp_mmc.h"
 #include <stdio.h>
 
 
