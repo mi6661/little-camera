@@ -14,7 +14,10 @@ void main(void){
     printf("Welcome!");
     //开启呼吸灯
     Blight_Init();
-    
+    //初始化ST7789
+    ST7789_Init();
+    delay(1024);
+    ST7789_Debug();
     while(1){
 
     }
