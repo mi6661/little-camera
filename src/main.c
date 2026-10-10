@@ -11,9 +11,6 @@ void main(void){
     //屏幕初始化
     OLED_Init();
     OLED_Test();
-    //mmc初始化
-    MMC_Init();
-    MMC_WriteBytes("hello",sizeof("hello"));
     printf("Welcome!");
     //开启呼吸灯
     Blight_Init();
