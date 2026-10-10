@@ -2,6 +2,7 @@
 #define __BSP_ST7789_H
 
 #include "stm32f10x.h"
+#include "utils.h"
 
 #define ST7789_CMD_NOP      0x00    //空操作
 #define ST7789_CMD_SWRESET  0x01    //软复位
