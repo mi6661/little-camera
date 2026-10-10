@@ -103,6 +103,18 @@ void ST7789_SendByte(uint8_t data){
     while(SPI_I2S_GetFlagStatus(SPI2,SPI_I2S_FLAG_BSY)==SET);
 }
 
+void ST7789_SendByte_Plus(uint8_t data){
+    while(SPI_I2S_GetFlagStatus(SPI2,SPI_I2S_FLAG_TXE)==RESET);
+    SPI_I2S_SendData(SPI2,data);
+    //while(SPI_I2S_GetFlagStatus(SPI2,SPI_I2S_FLAG_BSY)==SET);
+}
+
+void WaitIdle(){
+    while(SPI_I2S_GetFlagStatus(SPI2,SPI_I2S_FLAG_TXE)==RESET);
+    while(SPI_I2S_GetFlagStatus(SPI2,SPI_I2S_FLAG_BSY)==SET);
+}
+
+
 // void ST7789_SendData(uint8_t *data,uint16_t len){
 //     for(int i=0;i<len;i++){
 //         ST7789_SendByte(data[i]);
@@ -112,6 +124,7 @@ void ST7789_SendByte(uint8_t data){
 void ST7789_SendCmd(uint8_t cmd,uint32_t args,uint16_t argc){
     ST7789_CMode();
     ST7789_SendByte(cmd);
+    //WaitIdle();
     if(argc <= 0) return;
     ST7789_DMode();
     for(int i=0;i<argc;i++){
@@ -157,25 +170,26 @@ void ST7789_Debug(){
     ST7789_SendCmd(ST7789_CMD_RAMWR,0,0);
 
     SPI_Cmd(SPI2,DISABLE);
-    spi2.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_2;
+    spi2.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_8;
     SPI_Init(SPI2,&spi2);
     SPI_Cmd(SPI2,ENABLE);
+
     ST7789_DMode();
     while(1){
         for(int y=0;y<320;y++){
             for(int x=0;x<240;x++){
                 uint16_t pixel = 0b1111100000000000;
                 //uint16_t pixel = 0b0000000000011111;
-                ST7789_SendByte((uint8_t)(pixel >> 8));
-                ST7789_SendByte((uint8_t)(pixel & 0xFF));
+                ST7789_SendByte_Plus((uint8_t)(pixel >> 8));
+                ST7789_SendByte_Plus((uint8_t)(pixel & 0xFF));
             }
         }
         for(int y=0;y<320;y++){
             for(int x=0;x<240;x++){
                 //uint16_t pixel = 0b1111100000000000;
                 uint16_t pixel = 0b0000000000011111;
-                ST7789_SendByte((uint8_t)(pixel >> 8));
-                ST7789_SendByte((uint8_t)(pixel & 0xFF));
+                ST7789_SendByte_Plus((uint8_t)(pixel >> 8));
+                ST7789_SendByte_Plus((uint8_t)(pixel & 0xFF));
             }
         }
     }
