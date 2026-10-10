@@ -11,11 +11,19 @@ obj-o += $(patsubst %.c,%.o,$(obj-c))
 
 target := start
 
-INCPW := config core lib/inc src bsp
+INCPW := config core lib/inc src bsp utils
 INCPW := $(patsubst %,-I%,$(INCPW))
 CFLAG := -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER $(INCPW) -mcpu=cortex-m3 
+
+platform := $(shell uname -o)
+ifeq ($(platform), GNU/Linux)
 THUMB_LIB := /usr/lib/arm-none-eabi/lib/thumb/v7-m/nofp
 GCC_LIB   := /usr/lib/gcc/arm-none-eabi/12.2.1/thumb/v7-m/nofp
+else
+THUMB_LIB := /opt/arm-gcc/arm-none-eabi/lib/thumb/v7-m/nofp
+GCC_LIB   := /opt/arm-gcc/lib/gcc/arm-none-eabi/14.3.1/thumb/v7-m/nofp
+endif
+
 
 %.o: %.s
 	$(CC) $(CFLAG) -c $< -o $@
@@ -38,4 +46,5 @@ clean:
 	rm -f $(obj-o) *.elf *.dump
 
 debug:
-	echo $(obj-o)
+	echo $(GCC_LIB)
+	echo $(platform)
