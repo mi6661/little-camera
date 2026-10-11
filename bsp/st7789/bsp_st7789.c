@@ -5,10 +5,11 @@ static SPI_InitTypeDef spi2;
 static uint16_t ST7789_GRAM[ST_W*10] = {0};
 
 void ST_DMA_Init(){
+    RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1,ENABLE);
     DMA_InitTypeDef dma_conf;
     dma_conf.DMA_BufferSize = (ST_W*10);
     dma_conf.DMA_DIR = DMA_DIR_PeripheralDST;//外设作为数据目的地
-    dma_conf.DMA_PeripheralBaseAddr = SPI2->DR;
+    dma_conf.DMA_PeripheralBaseAddr = (uint32_t)&SPI2->DR;
     dma_conf.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
     dma_conf.DMA_PeripheralInc = DMA_PeripheralInc_Disable;  //外设寄存器关闭自增，因为SPI2->DR寄存器地址是固定的
     dma_conf.DMA_MemoryBaseAddr = (uint32_t)ST7789_GRAM;
@@ -28,7 +29,7 @@ void ST_DMA_Init(){
     NVIC_Init(&nvic_conf);
 
     //开启DMA中断
-    DMA_ITConfig(DMA1_Channel5,DMA_IT_TC | DMA_IT_HT | DMA_IT_TE,ENABLE);
+    DMA_ITConfig(DMA1_Channel5,DMA_IT_TC | DMA_IT_HT | DMA_IT_TE,DISABLE);
     DMA_Cmd(DMA1_Channel5,ENABLE);
 }
 
@@ -97,7 +98,7 @@ void ST_GPIO_Init(){
 void DMA1_Channel5_IRQHandler(){
     if(DMA_GetITStatus(DMA1_IT_TC5)){
         //TODO 完成一次DMA传输
-        DMA_ClearITPendingBit(DMA1_IT_TC5);
+        //DMA_ClearITPendingBit(DMA1_IT_TC5);
     }
     if(DMA_GetITStatus(DMA1_IT_HT5)){
         //TODO DMA传输完成总量一半
@@ -141,6 +142,12 @@ void WaitIdle(){
     while(SPI_I2S_GetFlagStatus(SPI2,SPI_I2S_FLAG_BSY)==SET);
 }
 
+/**
+ * @brief 通过DMA发送一个数据快
+ * 
+ * @param data 数据块首地址
+ * @param len 数据项长度
+ */
 void Send_Block_DMA(uint16_t *data,uint16_t len){
     DMA_Cmd(DMA1_Channel5,DISABLE);
     DMA_ClearFlag(DMA1_FLAG_TC5);
@@ -148,6 +155,13 @@ void Send_Block_DMA(uint16_t *data,uint16_t len){
     //配置本次传输
     DMA1_Channel5->CNDTR = len;
     DMA1_Channel5->CMAR = (uint32_t)data;
+
+    DMA_Cmd(DMA1_Channel5,ENABLE);//使能通道
+    SPI_I2S_DMACmd(SPI2,SPI_I2S_DMAReq_Tx,ENABLE);//使能SPI的DMA请求
+
+    while(DMA_GetFlagStatus(DMA1_FLAG_TC5)==RESET);//等待传输完成
+    SPI_I2S_DMACmd(SPI2,SPI_I2S_DMAReq_Tx,DISABLE);
+    DMA_Cmd(DMA1_Channel5,DISABLE);
 }
 
 
@@ -204,43 +218,29 @@ void ST7789_Debug(){
 
     //开启显示
     ST7789_SendCmd(ST7789_CMD_RAMWR,0,0);
-    SPI_Cmd(SPI2,ENABLE);
+    WaitIdle();
     /*从这里开始，屏幕已经通过低速SPI配置完成，现在开用DMA加高速SPI刷新屏幕数据*/
     SPI_Cmd(SPI2,DISABLE);
-    spi2.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_8;
+    spi2.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_2;
     spi2.SPI_DataSize = SPI_DataSize_16b;//调整位16bit模特
     SPI_Init(SPI2,&spi2);
-    
+    SPI_Cmd(SPI2,ENABLE);
 
     ST7789_DMode();
+    int pin = 1;
     while(1){
-        // for(int y=0;y<320;y++){
-        //     for(int x=0;x<240;x++){
-        //         uint16_t pixel = 0b1111100000000000;
-        //         //uint16_t pixel = 0b0000000000011111;
-        //         ST7789_SendByte_Plus((uint8_t)(pixel >> 8));
-        //         ST7789_SendByte_Plus((uint8_t)(pixel & 0xFF));
-        //     }
-        // }
-        // for(int y=0;y<320;y++){
-        //     for(int x=0;x<240;x++){
-        //         //uint16_t pixel = 0b1111100000000000;
-        //         uint16_t pixel = 0b0000000000011111;
-        //         ST7789_SendByte_Plus((uint8_t)(pixel >> 8));
-        //         ST7789_SendByte_Plus((uint8_t)(pixel & 0xFF));
-        //     }
-        // }
-        for(int i=0;i<ST_W*10;i++){
-            ST7789_GRAM[i] = 0b1111100000000000;
+        if(pin){
+            for(int i=0;i<ST_W*10;i++){
+                ST7789_GRAM[i] = 0b1111100000000000;
+            }
+        }else{
+            for(int i=0;i<ST_W*10;i++){
+                ST7789_GRAM[i] = 0b0000000000011111;
+            }
         }
-        while(DMA_GetFlagStatus(DMA1_FLAG_TC5)!=SET);
-        SPI_I2S_DMACmd(SPI2,SPI_I2S_DMAReq_Tx,ENABLE);
-
-        for(int i=0;i<ST_W*10;i++){
-            ST7789_GRAM[i] = 0b1111100000000000;
-        }
-        while(DMA_GetFlagStatus(DMA1_FLAG_TC5)!=SET);
-        SPI_I2S_DMACmd(SPI2,SPI_I2S_DMAReq_Tx,ENABLE);
+        pin = 1 - pin;
+        for(int i=0;i<32;i++)
+            Send_Block_DMA(ST7789_GRAM,240*10);
     }
     
 
