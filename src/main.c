@@ -9,8 +9,8 @@ void main(void){
     //初始化usart1
     //BTIO_Init();
     //屏幕初始化
-    OLED_Init();
-    OLED_Test();
+    //OLED_Init();
+    //OLED_Test();
     //printf("Welcome!");
     //开启呼吸灯
     Blight_Init();

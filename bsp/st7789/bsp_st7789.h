@@ -4,6 +4,9 @@
 #include "stm32f10x.h"
 #include "utils.h"
 
+#define ST_W 240
+#define ST_H 320
+
 #define ST7789_CMD_NOP      0x00    //空操作
 #define ST7789_CMD_SWRESET  0x01    //软复位
 
@@ -39,6 +42,15 @@
 #define ST7789_CMD_PWCTRL1	    0xD0 //电源控制 1
 #define ST7789_CMD_PVGAMCTRL    0xE0 //正向伽马较准 (Positive Voltage Gamma Control)
 #define ST7789_CMD_NVGAMCTRL    0xE1 //负向伽马较准 (Negative Voltage Gamma Control)
+
+//命令模式
+#define ST7789_CMode()  GPIO_ResetBits(GPIOA,GPIO_Pin_9);
+//数据模式
+#define ST7789_DMode()  GPIO_SetBits(GPIOA,GPIO_Pin_9);
+//使能ST7789
+#define ST7789_CSE()    GPIO_ResetBits(GPIOB,GPIO_Pin_12);
+//失能ST7789
+#define ST7789_CSD()    GPIO_SetBits(GPIOB,GPIO_Pin_12);
 
 
 
