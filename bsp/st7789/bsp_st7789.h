@@ -4,8 +4,9 @@
 #include "stm32f10x.h"
 #include "utils.h"
 
-#define ST_W 240
-#define ST_H 320
+#define STW 240
+#define STH 320
+#define LINE_COUNT 10
 
 #define ST7789_CMD_NOP      0x00    //空操作
 #define ST7789_CMD_SWRESET  0x01    //软复位

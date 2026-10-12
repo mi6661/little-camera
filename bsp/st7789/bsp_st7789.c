@@ -2,17 +2,20 @@
 
 static SPI_InitTypeDef spi2;
 
-static uint16_t ST7789_GRAM[ST_W*10] = {0};
+static uint16_t Gbufa[STW*LINE_COUNT] = {0};
+static uint16_t Gbufb[STW*LINE_COUNT] = {0};
+
+volatile uint8_t dma_busy = 0;
 
 void ST_DMA_Init(){
     RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1,ENABLE);
     DMA_InitTypeDef dma_conf;
-    dma_conf.DMA_BufferSize = (ST_W*10);
+    dma_conf.DMA_BufferSize = (STW*10);
     dma_conf.DMA_DIR = DMA_DIR_PeripheralDST;//外设作为数据目的地
     dma_conf.DMA_PeripheralBaseAddr = (uint32_t)&SPI2->DR;
     dma_conf.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
     dma_conf.DMA_PeripheralInc = DMA_PeripheralInc_Disable;  //外设寄存器关闭自增，因为SPI2->DR寄存器地址是固定的
-    dma_conf.DMA_MemoryBaseAddr = (uint32_t)ST7789_GRAM;
+    dma_conf.DMA_MemoryBaseAddr = (uint32_t)Gbufa;
     dma_conf.DMA_MemoryDataSize = DMA_MemoryDataSize_HalfWord;
     dma_conf.DMA_MemoryInc = DMA_MemoryInc_Enable;          //内存地址自增
     dma_conf.DMA_Mode = DMA_Mode_Normal;
@@ -29,7 +32,7 @@ void ST_DMA_Init(){
     NVIC_Init(&nvic_conf);
 
     //开启DMA中断
-    DMA_ITConfig(DMA1_Channel5,DMA_IT_TC | DMA_IT_HT | DMA_IT_TE,DISABLE);
+    DMA_ITConfig(DMA1_Channel5,DMA_IT_TC | DMA_IT_HT | DMA_IT_TE,ENABLE);
     DMA_Cmd(DMA1_Channel5,ENABLE);
 }
 
@@ -98,7 +101,10 @@ void ST_GPIO_Init(){
 void DMA1_Channel5_IRQHandler(){
     if(DMA_GetITStatus(DMA1_IT_TC5)){
         //TODO 完成一次DMA传输
-        //DMA_ClearITPendingBit(DMA1_IT_TC5);
+        DMA_ClearITPendingBit(DMA1_IT_TC5);
+        DMA_Cmd(DMA1_Channel5,DISABLE);
+        SPI_I2S_DMACmd(SPI2,SPI_I2S_DMAReq_Tx,DISABLE);
+        dma_busy = 0;
     }
     if(DMA_GetITStatus(DMA1_IT_HT5)){
         //TODO DMA传输完成总量一半
@@ -110,6 +116,8 @@ void DMA1_Channel5_IRQHandler(){
     }
     
 }
+
+
 
 void ST7789_Init(){
     delay_ms(200);
@@ -143,7 +151,7 @@ void WaitIdle(){
 }
 
 /**
- * @brief 通过DMA发送一个数据快
+ * @brief 通过DMA发送一个数据快,阻塞等待
  * 
  * @param data 数据块首地址
  * @param len 数据项长度
@@ -164,12 +172,58 @@ void Send_Block_DMA(uint16_t *data,uint16_t len){
     DMA_Cmd(DMA1_Channel5,DISABLE);
 }
 
+/**
+ * @brief 发送一个数据块。非阻塞
+ * 
+ * @param data 数据地址
+ * @param len 数据长度
+ */
+void Send_Block_NonBlocking(uint16_t *data,uint16_t len){
+    if(dma_busy) return;
+    dma_busy = 1;
 
-// void ST7789_SendData(uint8_t *data,uint16_t len){
-//     for(int i=0;i<len;i++){
-//         ST7789_SendByte(data[i]);
-//     }
-// }
+    //配置并启动DMA
+    DMA_Cmd(DMA1_Channel5,DISABLE);
+    DMA_ClearFlag(DMA1_FLAG_TC5);
+    DMA1_Channel5->CMAR = (uint32_t)data;
+    DMA1_Channel5->CNDTR = len;
+    DMA_Cmd(DMA1_Channel5,ENABLE);
+    SPI_I2S_DMACmd(SPI2,SPI_I2S_DMAReq_Tx,ENABLE);
+}
+
+/**
+ * @brief 刷屏函数
+ * 
+ */
+volatile int pin = 1;
+void Draw_FullScreen(){
+    int row = 0;
+    uint8_t use_Gbufa = 1;
+    uint16_t color = pin?0b0000011111100000:0b0000000000011111;
+    pin = 1 - pin;
+    while(row < 320){
+        //准备要发送到帧
+        if(use_Gbufa){
+           for(int i=0;i<STW*LINE_COUNT;i++)
+                Gbufa[i] = color; 
+        }else{
+            for(int i=0;i<STW*LINE_COUNT;i++)
+                Gbufb[i] = color;
+        }
+        //等待DMA发送完成
+        while(dma_busy);
+        //发送下一帧
+        if(use_Gbufa){
+            Send_Block_NonBlocking(Gbufa,STW*LINE_COUNT);
+        }else{
+            Send_Block_NonBlocking(Gbufb,STW*LINE_COUNT);
+        }
+    
+        use_Gbufa = !use_Gbufa;//切换缓冲区
+        row += 10;
+    }
+}
+
 
 void ST7789_SendCmd(uint8_t cmd,uint32_t args,uint16_t argc){
     ST7789_CMode();
@@ -227,23 +281,10 @@ void ST7789_Debug(){
     SPI_Cmd(SPI2,ENABLE);
 
     ST7789_DMode();
-    int pin = 1;
     while(1){
-        if(pin){
-            for(int i=0;i<ST_W*10;i++){
-                ST7789_GRAM[i] = 0b1111100000000000;
-            }
-        }else{
-            for(int i=0;i<ST_W*10;i++){
-                ST7789_GRAM[i] = 0b0000000000011111;
-            }
-        }
-        pin = 1 - pin;
-        for(int i=0;i<32;i++)
-            Send_Block_DMA(ST7789_GRAM,240*10);
+        Draw_FullScreen();  
     }
     
-
     ST7789_CSD();
 }
 
