@@ -1,5 +1,6 @@
 #include "bsp_blight.h"
 
+
 void Blight_TIM2_Init(){
     RCC_HCLKConfig(RCC_SYSCLK_Div1);
     RCC_PCLK1Config(RCC_HCLK_Div4);
