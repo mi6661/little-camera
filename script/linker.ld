@@ -4,8 +4,7 @@ ENTRY(Reset_Handler)
 MEMORY {
     FLASH (rw) : ORIGIN = 0x08000000, LENGTH = 1024K
     CCM (rwx)  : ORIGIN = 0x10000000, LENGTH = 64K
-    RAM1 (rwx) : ORIGIN = 0x20000000, LENGTH = 112K
-    RAM2 (rwx) : ORIGIN = 0x2001C000, LENGTH = 16K
+    RAM (rwx) : ORIGIN = 0x20000000, LENGTH = 128K
 }
 
 SECTIONS {
@@ -19,7 +18,7 @@ SECTIONS {
         _sdata = .;
         *(.data*)
         _edata = .;
-    } > RAM1 AT > FLASH
+    } > RAM AT > FLASH
     _sidata = LOADADDR(.data);
 
     . = ALIGN(4);
@@ -28,7 +27,7 @@ SECTIONS {
         *(.bss*)
         *(COMMON)
         _ebss = .;
-    } > RAM1
+    } > RAM
     
-    _estack = ORIGIN(RAM2) + LENGTH(RAM2);
+    _estack = ORIGIN(RAM) + LENGTH(RAM);
 }

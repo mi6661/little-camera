@@ -1,8 +1,11 @@
 #ifndef __BSP_ST7789_H
 #define __BSP_ST7789_H
+#include "stm32f4xx.h"
 #include "stm32f4xx_gpio.h"
 #include "stm32f4xx_spi.h"
+#include "stm32f4xx_dma.h"
 #include "delay/bsp_delay.h"
+#include "misc.h"
 #include <stdarg.h>
 
 #define STW 240
