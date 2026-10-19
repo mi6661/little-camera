@@ -178,6 +178,7 @@ void ST_SendCmd(uint8_t cmd,uint8_t argc,...){
 }
 
 void Send_Block_Blocking(uint16_t *data,uint16_t len){
+    ST_SPI_DMAMode();
     while(dma_isbusy);
     dma_isbusy = 1;
     while(SPI_GetFlagStatus(SPI1,SPI_I2S_FLAG_BSY));//DMA完成，不意味着SPI传输结束。
@@ -189,7 +190,6 @@ void Send_Block_Blocking(uint16_t *data,uint16_t len){
     DMA2_Stream3->NDTR = len;
     DMA2_Stream3->M0AR = (uint32_t)data;
 
-    ST_SPI_DMAMode();
     DMA_Cmd(DMA2_Stream3,ENABLE);
     ST7789_CSE();
     ST7789_DMode();
@@ -197,6 +197,7 @@ void Send_Block_Blocking(uint16_t *data,uint16_t len){
 }
 
 void Send_Block_NonBlocking(uint16_t *data,uint16_t len){
+    ST_SPI_DMAMode();
     if(dma_isbusy)return;
     dma_isbusy = 1;
     while(SPI_GetFlagStatus(SPI1,SPI_I2S_FLAG_BSY));//DMA完成，不意味着SPI传输结束。
@@ -207,7 +208,6 @@ void Send_Block_NonBlocking(uint16_t *data,uint16_t len){
     DMA2_Stream3->NDTR = len;
     DMA2_Stream3->M0AR = (uint32_t)data;
 
-    ST_SPI_DMAMode();
     DMA_Cmd(DMA2_Stream3,ENABLE);
     ST7789_CSE();
     SPI_DMACmd(SPI1,SPI_I2S_DMAReq_Tx,ENABLE);
@@ -270,10 +270,11 @@ void GreenScreen(){
     uint16_t b = 0b0000000000011111;
     ClearBuf(BUFA,r);
     for(int i=0;i<16;i++) Send_Block_Blocking(BUFA,240*20);
-    ClearBuf(BUFB,g);
+    ClearBuf(BUFB,b);
     for(int i=0;i<16;i++) Send_Block_Blocking(BUFB,240*20);
-    ClearBuf(BUFA,b);
+    ClearBuf(BUFA,g);
     for(int i=0;i<16;i++) Send_Block_Blocking(BUFA,240*20);
+    delay_ms(1);
 }
 
 
@@ -286,11 +287,18 @@ void ST7789_Debug(){
     ClearBuf(BUFB,0xF100);
     
     
-    // ST_DisplayArea(30,30,90,90);
-    // ST_SendCmd(ST7789_CMD_RAMWR,0);
+    ST7789_SetWindow(0,0,40,40);
+    ST7789_WritePixels_DMA(BUFA,41*41);
+
+    ST7789_SetWindow(41,41,61,61);
+    ST7789_WritePixels_DMA(BUFB,21*21);
+
+    ST7789_SetWindow(100,50,200,300);
+    ST7789_WritePixels_DMA(BUFB,101*251);
+
     while(1){
         
-        // Send_Block_Blocking(BUFB,240*20);
+       
     }
 
 }
