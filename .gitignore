@@ -3,3 +3,4 @@
 *.dump
 **/.vscode/
 *.json
+load
