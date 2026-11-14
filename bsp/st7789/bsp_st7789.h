@@ -49,9 +49,9 @@
 #define ST7789_CMD_NVGAMCTRL    0xE1 //负向伽马较准 (Negative Voltage Gamma Control)
 
 //命令模式
-#define ST7789_CMode()  GPIO_ResetBits(GPIOD,GPIO_Pin_12);
+#define ST7789_CMode()  GPIO_ResetBits(GPIOE,GPIO_Pin_10);
 //数据模式
-#define ST7789_DMode()  GPIO_SetBits(GPIOD,GPIO_Pin_12);
+#define ST7789_DMode()  GPIO_SetBits(GPIOE,GPIO_Pin_10);
 //使能ST7789
 #define ST7789_CSE()    GPIO_ResetBits(GPIOA,GPIO_Pin_4);
 //失能ST7789
