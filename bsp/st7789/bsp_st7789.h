@@ -59,7 +59,11 @@
 
 
 void ST7789_Init();
-
+void ST7789_Rectangle(uint16_t x,uint16_t y,
+                        uint16_t w,uint16_t h,uint16_t color);
+void ST7789_Image(uint16_t x,uint16_t y,
+                        uint16_t w,uint16_t h,
+                        const uint16_t* data);
 void ST7789_Debug();
 
 #endif // !__BSP_ST7789_H
