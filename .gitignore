@@ -3,3 +3,4 @@
 *.elf
 *.dump
 *.json
+**/.cache
